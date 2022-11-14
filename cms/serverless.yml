@@ -1,0 +1,59 @@
+service: online-cv-admin
+
+frameworkVersion: "3"
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  region: eu-west-3 # NOTE: Update to your region
+  profile: admin
+  logRetentionInDays: 1
+  versionFunctions: false
+
+  memorySize: 2048
+  timeout: 30
+
+  environment:
+    APP_KEYS: ${env:APP_KEYS}
+    API_TOKEN_SALT: ${env:API_TOKEN_SALT}
+    ADMIN_JWT_SECRET: ${env:ADMIN_JWT_SECRET}
+    JWT_SECRET: ${env:JWT_SECRET}
+    SERVER_URL: ${env:SERVER_URL}
+    STAGE: ${sls:stage}
+
+package:
+  excludeDevDependencies: true
+  exclude:
+    - "**"
+  include:
+    - "config/**"
+    - "database/**"
+    - "node_modules/@koa/**"
+    - "node_modules/@strapi/**"
+    - "public/**"
+    - "src/**"
+    - ".env.example"
+    - "package.json"
+
+functions:
+  api:
+    handler: src/lambda.strapi
+    events:
+      - http:
+          path: /
+          method: ANY
+          cors: true
+      - http:
+          path: /{any+}
+          method: ANY
+          cors: true
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+  - serverless-scriptable-plugin
+
+custom:
+  scriptHooks:
+    after:deploy:finalize:
+      - scripts/postDeploy.js
